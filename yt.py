@@ -5,7 +5,7 @@ import streamlit as st
 
 #api connection
 def Api_connect():
-    Api_ID="AIzaSyD4XgSLQzQeIrHXGmo2om9gMGW1jpPme-s"
+    Api_ID="Api Key"
     api_service_name="youtube"
     api_version="v3"
     youtube=build(api_service_name,api_version,developerKey=Api_ID)
@@ -85,11 +85,9 @@ def get_video_info(videocount):
                         channel_Id=item['snippet']['channelId'],
                         video_Id=item['id'],
                         Title=item['snippet']['title'],
-                        #Tags=str(item['snippet']['tags']),
                         Thumbnail=item['snippet']['thumbnails']['default']['url'],
                         Description=item['snippet']['description'],
                         Published_Date=item['snippet']['publishedAt'],
-                        #Duraition=item['contentDetails']['duration'],
                         Views=item['statistics']['viewCount'],
                         Likes=item['statistics'].get('likeCount'),
                         comments=item['statistics'].get('commentCount'),
@@ -142,7 +140,6 @@ def get_comment_info(video_ids):
                         comment_author=item['snippet']['topLevelComment']['snippet']['authorDisplayName'],
                         comment_publishedat=item['snippet']['topLevelComment']['snippet']['publishedAt'])
                 comment_data.append(data)
-        #COMMENT=pd.DataFrame(comment_data)
     except:
         pass
     COMMENT=pd.DataFrame(comment_data)
@@ -370,13 +367,8 @@ col1,col2=st.columns([1,4])
 with col1:
     if st.button("Click here Before Leave"):
         with col2:
-            audio_file = "C:/Users/DELL XPS/Downloads/kgf bgm.mp3"
-            st.audio(audio_file)
             st.header('*To be continued.....*')
             st.header("*Thanks for now will see soon with new possibilities*")
-            st.markdown("Loading.....")
-            st.title(":purples[PhonePe Data Visualization and Exploration**]")
-            st.image("C:/Users/DELL XPS/Downloads/phonepe logo.jpg")
             
             
 #To be Continued................
