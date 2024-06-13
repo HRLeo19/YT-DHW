@@ -2,10 +2,11 @@ from googleapiclient.discovery import build
 import pandas as pd
 import isodate
 import streamlit as st
+import plotly.express as px
 
 #api connection
 def Api_connect():
-    Api_ID="Api Key"
+    Api_ID="insert api key here" # Api key is required
     api_service_name="youtube"
     api_version="v3"
     youtube=build(api_service_name,api_version,developerKey=Api_ID)
@@ -110,8 +111,8 @@ def convert_iso_time(vid):
         responsem=requestm.execute()
         for n in responsem["items"]:
             duration_str=n["contentDetails"]["duration"]
-            duration=isodate.parse_duration(duration_str)
-            total_seconds=int(duration.total_seconds())
+            duration=isodate.parse_duration(duration_str) #iso to python timedelta
+            total_seconds=int(duration.total_seconds()) #to convert into seconds
             Duration_time.append(total_seconds)
     df=pd.DataFrame(Duration_time,columns=['Duration'])
     return df
@@ -161,13 +162,11 @@ def insert_into_database(cha,vide,comm):
                                     channel_uploads,viewcount,subscribcount,videocount)
                                     values(%s,%s,%s,%s,%s,%s,%s,%s)'''
         send1=cha.values.tolist()
-        mycursor.executemany(query1,send1)
+        for row1 in send1:
+            mycursor.execute(query1,row1)
         mydb.commit()
-    except:
-        st.write("Channel Details already uploaded")
 
     #creating table for video details
-    try:
         mycursor.execute('''create table if not exists VIDEO_INFOS(Channel_Name varchar(255),
                                     channel_Id varchar(200),video_Id varchar(200) primary key,Title varchar(255),
                                     Thumbnail Text,Description Text,Published_Date timestamp,
@@ -178,31 +177,54 @@ def insert_into_database(cha,vide,comm):
                                     Caption,Duration)
                                     values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'''
         send2=vide.values.tolist()
-        mycursor.executemany(query2,send2)
+        for row2 in send2: 
+            mycursor.execute(query2,row2)
         mydb.commit()
-    except:
-        st.write("Videos Details already uploaded")
-
+    
     #creating table for comments
-    try:
         mycursor.execute('''create table if not exists comment_infos(comment_id varchar(200) primary key,video_id varchar(30),
                                 comment_text text,comment_author varchar(200), comment_publishedat timestamp)''')
         query3='''insert into comment_infos(comment_id,video_id,comment_text,comment_author,comment_publishedat)
                                     values(%s,%s,%s,%s,%s)'''
         send3=comm.values.tolist()
-        mycursor.executemany(query3,send3)
+        for row3 in send3:
+            mycursor.execute(query3,row3)
         mydb.commit()
+        st.success("Success")
     except:
-        st.write("Comments Details already uploaded")
+        st.write("Details already uploaded") 
+    return 
 
-    return st.write("Details uploaded")
+def update(a,b):
+    mycursor.execute("use yt")
+    
+    querya='''delete from channel_infos where channel_id=%s'''
+    dela=(a,)
+    mycursor.execute(querya,dela)
+    mydb.commit()
 
+    queryb='''delete from video_infos where channel_id=%s'''
+    delb=(a,)
+    mycursor.execute(queryb,delb)
+    mydb.commit()
 
+    
+    mycursor.execute("use yt")
+    queryc="delete from comment_infos where video_id in (%s)"
+    delc=b
+    for i in delc:
+        mycursor.execute(queryc,(i,))
+        mydb.commit()
 
-st.set_page_config(layout="wide")
+    return st.markdown("*Updating...*")
+    
+
+st.set_page_config(page_title="YouTube DHW",
+                   layout="wide",
+                   page_icon="C:/Users/DELL XPS/Downloads/yt.png")
 col1,col2=st.columns([1,4])
 with col1:
-    st.image("C:/Users/DELL XPS/Downloads/Logo_of_YouTube_(2015-2017).svg.png",width=200)
+    st.image("C:/Logo_of_YouTube_(2015-2017).svg.png",width=200) #image is required
 with col2:
     st.title(":red[YOUTUBE DATA HARVESTING AND WAREHOUSING]")
     YTID=st.text_input("Enter the Channel ID")
@@ -212,13 +234,20 @@ with col2:
     Duration_yt=convert_iso_time(videoid)
     videosdata=joining_df(except_duration,Duration_yt)
     comments=get_comment_info(videoid)
-    if st.button("Upload to MySQL Database"):
-        insert_into_database(channel,videosdata,comments)
 
 col1,col2=st.columns([1,4])
 with col1:
     show_table=st.radio("Select to view",("CLICK","CHANNEL","VIDEOS","COMMENTS"))
 with col2:
+    on=st.toggle("Activate Featuer to update with existing data")
+    if on:
+        if st.button("Update Existing"):
+            update(YTID,videoid)
+            insert_into_database(channel,videosdata,comments)
+    else:
+        if st.button("Upload to MySQL Database"):
+            insert_into_database(channel,videosdata,comments)
+    
     if show_table=="CLICK":
         st.markdown("**1. Please enter the channel id that you want to Retrieve.**")
         st.markdown("**2. After entering channel id you can view the details by selecting CHANNEL,VIDEOS,COMMENTS on your left.**")
@@ -243,11 +272,11 @@ with col2:
         pass
 
 #mysql connection to see details
-
 mycursor.execute("use yt")
 
 question1=st.selectbox("Select the Quary to Display",
-                       ("SELECT",
+                    ("SELECT",
+                        "All Channels and their Id Already Stored",
                         "1.What are the names of all the videos and their corresponding channels?",
                         "2.Which channels have the most number of videos, and how many videos do they have?",
                         "3.What are the top 10 most viewed videos and their respective channels?",
@@ -262,6 +291,15 @@ question1=st.selectbox("Select the Quary to Display",
 if question1=="SELECT":
     st.header("Please Select from the above dropbox Queries to Show")
 
+if question1=="All Channels and their Id Already Stored":
+    q='''select channel_name,channel_id from channel_infos order by channel_name'''
+    mycursor.execute(q)
+    mydb.commit()
+    t=mycursor.fetchall()
+    df=pd.DataFrame(t,columns=["Channel Name","ID"])
+    df.index+=1
+    st.dataframe(df)
+
 if question1=="1.What are the names of all the videos and their corresponding channels?":
     
     q1='''select Channel_Name,title from video_infos order by Channel_Name asc'''
@@ -271,6 +309,7 @@ if question1=="1.What are the names of all the videos and their corresponding ch
     df1=pd.DataFrame(t1,columns=["channel name","video title"])
     show1=df1.to_dict(orient='records')
     st.dataframe(show1)
+    
 
 if question1=="2.Which channels have the most number of videos, and how many videos do they have?":
 
@@ -278,9 +317,14 @@ if question1=="2.Which channels have the most number of videos, and how many vid
     mycursor.execute(q2)
     mydb.commit()
     t2=mycursor.fetchall()
-    df2=pd.DataFrame(t2,columns=["Channel Name","videos Count"])
+    df2=pd.DataFrame(t2,columns=["Channel Name","Videos Count"])
     show2=df2.to_dict(orient='records')
-    st.dataframe(show2)
+    col1,col2=st.columns([2,5])
+    with col1:
+        st.dataframe(show2)
+    with col2:
+        fig2=px.bar(df2,x="Channel Name",y="Videos Count",color_discrete_sequence=px.colors.sequential.Redor_r)
+        st.plotly_chart(fig2)
 
 if question1=="3.What are the top 10 most viewed videos and their respective channels?":
 
@@ -288,9 +332,11 @@ if question1=="3.What are the top 10 most viewed videos and their respective cha
     mycursor.execute(q3)
     mydb.commit()
     t3=mycursor.fetchall()
-    df3=pd.DataFrame(t3,columns=["Channel Name","videos Name","Total Views"])
+    df3=pd.DataFrame(t3,columns=["Channel Name","Videos Name","Total Views"])
     show3=df3.to_dict(orient='records')
     st.dataframe(show3)
+    fig3=px.bar(df3,x="Total Views",y="Videos Name",hover_name="Channel Name")
+    st.plotly_chart(fig3)
 
 if question1=="4.How many comments were made on each video, and what are their corresponding video names?":
 
@@ -298,19 +344,24 @@ if question1=="4.How many comments were made on each video, and what are their c
     mycursor.execute(q4)
     mydb.commit()
     t4=mycursor.fetchall()
-    df4=pd.DataFrame(t4,columns=["Channel Name","videos Name","Total Comments"])
+    df4=pd.DataFrame(t4,columns=["Channel Name","Videos Name","Total Comments"])
     show4=df4.to_dict(orient='records')
     st.dataframe(show4)
+    fig4=px.bar(df4,x="Total Comments",y="Channel Name",hover_name="Total Comments",color_discrete_sequence=px.colors.sequential.Rainbow_r,
+                height=600)
+    st.plotly_chart(fig4)
 
 if question1=="5.Which videos have the highest number of likes, and what are their corresponding channel names?":
-
+    #SELECT Channel_Name,sum(Likes) from video_infos group by Channel_Name order by sum(Likes) DESC
     q5='''select Channel_Name,Title,Likes from video_infos order by Likes desc'''
     mycursor.execute(q5)
     mydb.commit()
     t5=mycursor.fetchall()
-    df5=pd.DataFrame(t5,columns=["Channel Name","videos Name","Total Likes"])
+    df5=pd.DataFrame(t5,columns=["Channel Name","Videos Name","Total Likes"])
     show5=df5.to_dict(orient='records')
     st.dataframe(show5)
+    fig5=px.pie(data_frame=df5,names="Channel Name",values="Total Likes",hover_data="Videos Name")
+    st.plotly_chart(fig5)
 
 if question1=="6.What is the total number of likes for each video, and what are their corresponding video names?":
 
@@ -330,7 +381,12 @@ if question1=="7.What is the total number of views for each channel, and what ar
     t7=mycursor.fetchall()
     df7=pd.DataFrame(t7,columns=["Channel Name","Total Views"])
     show7=df7.to_dict(orient='records')
-    st.dataframe(show7)
+    col1,col2=st.columns([2,5])
+    with col1:
+        st.dataframe(show7)
+    with col2:
+        fig7=px.pie(data_frame=df7,names="Channel Name",values="Total Views",hover_name="Total Views")
+        st.plotly_chart(fig7)
 
 if question1=="8.What are the names of all the channels that have published videos in the year 2022?":
 
@@ -344,24 +400,31 @@ if question1=="8.What are the names of all the channels that have published vide
 
 if question1=="9.What is the average duration of all videos in each channel, and what are their corresponding channel names?":
 
-    q9='''select Channel_Name,avg(Duration) from video_infos group by Channel_Name'''
+    q9='''select Channel_Name,avg(Duration)/60 from video_infos group by Channel_Name'''
     mycursor.execute(q9)
     mydb.commit()
     t9=mycursor.fetchall()
-    df9=pd.DataFrame(t9,columns=["Channel Name","Avg Duration in SECONDS"])
+    df9=pd.DataFrame(t9,columns=["Channel Name","Avg Duration in Minutes"])
     show9=df9.to_dict(orient='records')
-    st.dataframe(show9)
+    col1,col2=st.columns([2,5])
+    with col1:
+        st.dataframe(show9)
+    with col2:
+        fig9=px.line(df9,x="Channel Name",y="Avg Duration in Minutes",hover_name="Avg Duration in Minutes")
+        st.plotly_chart(fig9)
 
 if question1=="10.Which videos have the highest number of comments, and what are their corresponding channel names?":
 
     q10='''select Channel_Name,Title,comments as comments from video_infos where comments is not null
-             order by comments desc'''
+            order by comments desc'''
     mycursor.execute(q10)
     mydb.commit()
     t10=mycursor.fetchall()
     df10=pd.DataFrame(t10,columns=["Channel Name","Video Name","Comments"])
     show10=df10.to_dict(orient='records')
     st.dataframe(show10)
+    fig10=px.bar(df10,x="Channel Name",y="Comments",color_discrete_sequence=px.colors.sequential.Rainbow)
+    st.plotly_chart(fig10)
 
 col1,col2=st.columns([1,4])
 with col1:
