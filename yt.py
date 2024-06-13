@@ -6,7 +6,7 @@ import plotly.express as px
 
 #api connection
 def Api_connect():
-    Api_ID="insert api key here" # Api key is required
+    Api_ID="api key"
     api_service_name="youtube"
     api_version="v3"
     youtube=build(api_service_name,api_version,developerKey=Api_ID)
@@ -216,7 +216,7 @@ def update(a,b):
         mycursor.execute(queryc,(i,))
         mydb.commit()
 
-    return st.markdown("*Updating...*")
+    return st.markdown(":sunglasses:")
     
 
 st.set_page_config(page_title="YouTube DHW",
@@ -224,7 +224,7 @@ st.set_page_config(page_title="YouTube DHW",
                    page_icon="C:/Users/DELL XPS/Downloads/yt.png")
 col1,col2=st.columns([1,4])
 with col1:
-    st.image("C:/Logo_of_YouTube_(2015-2017).svg.png",width=200) #image is required
+    st.image("C:/Logo_of_YouTube_(2015-2017).svg.png",width=200)
 with col2:
     st.title(":red[YOUTUBE DATA HARVESTING AND WAREHOUSING]")
     YTID=st.text_input("Enter the Channel ID")
@@ -239,14 +239,24 @@ col1,col2=st.columns([1,4])
 with col1:
     show_table=st.radio("Select to view",("CLICK","CHANNEL","VIDEOS","COMMENTS"))
 with col2:
+    st.write("Click Button to Upload Details into Database")
+    if st.button("Upload to MySQL Database"):
+        insert_into_database(channel,videosdata,comments)
+    
     on=st.toggle("Activate Featuer to update with existing data")
     if on:
-        if st.button("Update Existing"):
-            update(YTID,videoid)
-            insert_into_database(channel,videosdata,comments)
-    else:
-        if st.button("Upload to MySQL Database"):
-            insert_into_database(channel,videosdata,comments)
+        tab1,tab2=st.tabs(["Update","Delete"])
+        with tab1:
+            st.write("Click Button to update with existing data")
+            if st.button("Update Existing"):
+                update(YTID,videoid)
+                insert_into_database(channel,videosdata,comments)
+
+        with tab2:
+            st.write("Click Button if need to delete this channel id details if it is stored")
+            if st.button("Delete ID Details"):
+                update(YTID,videoid)
+                st.write("Successfully Deleted")
     
     if show_table=="CLICK":
         st.markdown("**1. Please enter the channel id that you want to Retrieve.**")
@@ -273,8 +283,8 @@ with col2:
 
 #mysql connection to see details
 mycursor.execute("use yt")
-
-question1=st.selectbox("Select the Quary to Display",
+st.markdown("**Here are some Important Insights**")
+question1=st.selectbox("Select to Display",
                     ("SELECT",
                         "All Channels and their Id Already Stored",
                         "1.What are the names of all the videos and their corresponding channels?",
@@ -323,7 +333,8 @@ if question1=="2.Which channels have the most number of videos, and how many vid
     with col1:
         st.dataframe(show2)
     with col2:
-        fig2=px.bar(df2,x="Channel Name",y="Videos Count",color_discrete_sequence=px.colors.sequential.Redor_r)
+        fig2=px.bar(df2,x="Channel Name",y="Videos Count",color_discrete_sequence=px.colors.sequential.Redor_r,
+                    hover_name="Videos Count")
         st.plotly_chart(fig2)
 
 if question1=="3.What are the top 10 most viewed videos and their respective channels?":
@@ -360,7 +371,8 @@ if question1=="5.Which videos have the highest number of likes, and what are the
     df5=pd.DataFrame(t5,columns=["Channel Name","Videos Name","Total Likes"])
     show5=df5.to_dict(orient='records')
     st.dataframe(show5)
-    fig5=px.pie(data_frame=df5,names="Channel Name",values="Total Likes",hover_data="Videos Name")
+    fig5=px.pie(data_frame=df5,names="Channel Name",values="Total Likes",hover_data="Videos Name",
+                title="Total Like counts for each Channel",hover_name="Total Likes")
     st.plotly_chart(fig5)
 
 if question1=="6.What is the total number of likes for each video, and what are their corresponding video names?":
@@ -385,7 +397,8 @@ if question1=="7.What is the total number of views for each channel, and what ar
     with col1:
         st.dataframe(show7)
     with col2:
-        fig7=px.pie(data_frame=df7,names="Channel Name",values="Total Views",hover_name="Total Views")
+        fig7=px.pie(data_frame=df7,names="Channel Name",values="Total Views",hover_name="Total Views",
+                    title="Total Number of Views")
         st.plotly_chart(fig7)
 
 if question1=="8.What are the names of all the channels that have published videos in the year 2022?":
@@ -423,8 +436,10 @@ if question1=="10.Which videos have the highest number of comments, and what are
     df10=pd.DataFrame(t10,columns=["Channel Name","Video Name","Comments"])
     show10=df10.to_dict(orient='records')
     st.dataframe(show10)
-    fig10=px.bar(df10,x="Channel Name",y="Comments",color_discrete_sequence=px.colors.sequential.Rainbow)
+    fig10=px.bar(df10,x="Channel Name",y="Comments",color_discrete_sequence=px.colors.sequential.Rainbow,
+                 hover_name="Comments",hover_data="Video Name")
     st.plotly_chart(fig10)
+
 
 col1,col2=st.columns([1,4])
 with col1:
