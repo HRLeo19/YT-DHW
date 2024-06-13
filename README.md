@@ -29,6 +29,7 @@ first import all required packages
 	3.import isodate-------------------------------(to convert ISO datetime to seconds)
 	4.import streamlit as st-----------------------(to show in frontend)
 	5.import mysql.connector-----------------------(connecting MySQL database)
+        6.import ploty.express as px ------------------(for graph visualization)
 
 1.Then to retrieve datas from yt through API key creating function
 eg code;
