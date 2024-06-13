@@ -6,7 +6,7 @@ import plotly.express as px
 
 #api connection
 def Api_connect():
-    Api_ID="api key"
+    Api_ID="API KEY"
     api_service_name="youtube"
     api_version="v3"
     youtube=build(api_service_name,api_version,developerKey=Api_ID)
@@ -218,6 +218,24 @@ def update(a,b):
 
     return st.markdown(":sunglasses:")
     
+def page1():
+    tab1,tab2=st.tabs(["Update","Delete"])
+    with tab1:
+        st.write("Click Button to update with existing data")
+        if st.button("Update Existing"):
+            update(YTID,videoid)
+            insert_into_database(channel,videosdata,comments)
+
+    with tab2:
+        st.write("Click Button if need to delete this channel id details if it is stored")
+        if st.button("Delete ID Details"):
+            update(YTID,videoid)
+            st.write("Successfully Deleted")
+
+def page2():
+    st.write("Click Button to Upload Details into Database")
+    if st.button("Upload to MySQL Database"):
+        insert_into_database(channel,videosdata,comments)
 
 st.set_page_config(page_title="YouTube DHW",
                    layout="wide",
@@ -239,25 +257,13 @@ col1,col2=st.columns([1,4])
 with col1:
     show_table=st.radio("Select to view",("CLICK","CHANNEL","VIDEOS","COMMENTS"))
 with col2:
-    st.write("Click Button to Upload Details into Database")
-    if st.button("Upload to MySQL Database"):
-        insert_into_database(channel,videosdata,comments)
-    
-    on=st.toggle("Activate Featuer to update with existing data")
+    on=st.toggle("Activate Featuer to update/Delete with existing data")
     if on:
-        tab1,tab2=st.tabs(["Update","Delete"])
-        with tab1:
-            st.write("Click Button to update with existing data")
-            if st.button("Update Existing"):
-                update(YTID,videoid)
-                insert_into_database(channel,videosdata,comments)
+        page1()
 
-        with tab2:
-            st.write("Click Button if need to delete this channel id details if it is stored")
-            if st.button("Delete ID Details"):
-                update(YTID,videoid)
-                st.write("Successfully Deleted")
-    
+    else :
+        page2()
+
     if show_table=="CLICK":
         st.markdown("**1. Please enter the channel id that you want to Retrieve.**")
         st.markdown("**2. After entering channel id you can view the details by selecting CHANNEL,VIDEOS,COMMENTS on your left.**")
